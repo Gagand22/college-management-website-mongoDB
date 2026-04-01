@@ -155,6 +155,11 @@ app.post('/api/login', async (req, res) => {
     if (user) {
         const userObj = user.toObject();
         delete userObj.password;
+        
+        // --- FIX: Map MongoDB '_id' to 'id' so the frontend understands it ---
+        userObj.id = userObj._id.toString();
+        // ---------------------------------------------------------------------
+
         res.json({ success: true, user: userObj });
     } else {
         res.status(401).json({ success: false, message: "Invalid Credentials" });
