@@ -73,35 +73,47 @@ async function seedDB() {
 seedDB();
 
 // --- 4. HELPERS ---
-const subjects = {
-    "BCA": ["Java Programming", "Data Structures", "DBMS", "Computer Networks", "Operating Systems"],
-    "BBA": ["Business Studies", "Marketing Mgmt", "HR Management", "Business Law", "Business Ethics"],
-    "BCOM": ["Accounting", "Economics", "Taxation", "Business Stats", "Banking"]
-};
+// --- 3. HELPERS ---
 
-function generateTimetable(courseName) {
-    const subs = subjects[courseName] || [];
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    let schedule = {};
-    days.forEach((day, index) => {
-        let isOddDay = ((index + 1) % 2 !== 0);
-        if (isOddDay) {
-            schedule[day] = [
-                { time: "02:00 PM - 02:50 PM", subject: subs[0] || "General", room: "Room 101", period: 1 },
-                { time: "02:50 PM - 03:40 PM", subject: subs[1] || "General", room: "Room 102", period: 2 },
-                { time: "03:40 PM - 04:30 PM", subject: subs[2] || "General", room: "Lab A", period: 3 },
-                { time: "04:30 PM - 05:20 PM", subject: subs[3] || "General", room: "Room B", period: 4 }
-            ];
-        } else {
-            schedule[day] = [
-                { time: "09:00 AM - 09:50 AM", subject: subs[4] || "General", room: "Room 201", period: 1 },
-                { time: "09:50 AM - 10:40 AM", subject: subs[0] || "General", room: "Room 202", period: 2 },
-                { time: "10:40 AM - 11:30 AM", subject: subs[1] || "General", room: "Room 203", period: 3 },
-                { time: "11:30 AM - 12:20 PM", subject: subs[2] || "General", room: "Lab C", period: 4 }
-            ];
-        }
+// Helper to convert String ID to ObjectId
+function toObjectId(id) {
+    return new mongoose.Types.ObjectId(id);
+}
+
+async function calculateAttendance(studentId) {
+    // FIX: Convert the incoming string ID to ObjectId before searching
+    const records = await Attendance.find({ studentId: toObjectId(studentId) });
+    
+    const totalClasses = records.length;
+    const presentCount = records.filter(r => r.status === 'present').length;
+    const semesterPercentage = totalClasses === 0 ? 0 : ((presentCount / totalClasses) * 100).toFixed(1);
+
+    const currentMonth = new Date().getMonth();
+    const monthlyRecords = records.filter(r => new Date(r.date).getMonth() === currentMonth);
+    const monthlyTotal = monthlyRecords.length;
+    const monthlyPresent = monthlyRecords.filter(r => r.status === 'present').length;
+    const monthlyPercentage = monthlyTotal === 0 ? 0 : ((monthlyPresent / monthlyTotal) * 100).toFixed(1);
+
+    return { semesterPercentage, total: totalClasses, present: presentCount, monthlyPercentage, monthlyTotal, monthlyPresent };
+}
+
+async function calculateSubjectAttendance(studentId) {
+    // FIX: Convert the incoming string ID to ObjectId before searching
+    const records = await Attendance.find({ studentId: toObjectId(studentId) });
+    
+    let subjectStats = {};
+    records.forEach(record => {
+        if (!subjectStats[record.subject]) subjectStats[record.subject] = { total: 0, present: 0 };
+        subjectStats[record.subject].total++;
+        if (record.status === 'present') subjectStats[record.subject].present++;
     });
-    return schedule;
+    let result = [];
+    for (let sub in subjectStats) {
+        let stats = subjectStats[sub];
+        let percent = ((stats.present / stats.total) * 100).toFixed(1);
+        result.push({ subject: sub, present: stats.present, total: stats.total, percentage: percent, isShortage: percent < 75 });
+    }
+    return result;
 }
 
 async function calculateAttendance(studentId) {
