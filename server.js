@@ -168,7 +168,10 @@ app.get('/api/student/attendance/:id', async (req, res) => {
     try {
         const overall = await calculateAttendance(req.params.id);
         const subjectWise = await calculateSubjectAttendance(req.params.id);
-        const history = await Attendance.find({ studentId: req.params.id }).sort({ date: -1 });
+        
+        // FIX: Convert ID for history too
+        const history = await Attendance.find({ studentId: toObjectId(req.params.id) }).sort({ date: -1 });
+        
         res.json({ overall, subjects: subjectWise, history });
     } catch (err) {
         res.status(500).json({ error: err.message });
