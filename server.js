@@ -81,7 +81,12 @@ function toObjectId(id) {
 }
 
 async function calculateAttendance(studentId) {
-    // FIX: Convert the incoming string ID to ObjectId before searching
+    // Safety check: If ID is invalid, return zeros
+    if (!studentId) {
+        return { semesterPercentage: 0, total: 0, present: 0, monthlyPercentage: 0, monthlyTotal: 0, monthlyPresent: 0 };
+    }
+
+    // Convert string ID to ObjectId
     const records = await Attendance.find({ studentId: toObjectId(studentId) });
     
     const totalClasses = records.length;
