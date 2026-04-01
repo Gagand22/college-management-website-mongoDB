@@ -25,7 +25,10 @@ app.get('/', (req, res) => {
 // --- 1. DATABASE CONNECTION (MONGODB) ---
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/uniportal_db';
 
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000, // Keep trying to connect for 5 seconds
+    socketTimeoutMS: 45000,         // Close sockets after 45s of inactivity
+})
     .then(() => console.log('✅ Connected to MongoDB'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
